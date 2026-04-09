@@ -1,103 +1,116 @@
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import './App.css'
 import ChatPage from './components/ChatPage'
 
-// Home Page
+// Home Page Component
 function HomePage() {
   const navigate = useNavigate()
 
   return (
     <>
+      {/* Hero Section */}
       <section id="center">
         <div className="hero">
-          <div className="app-icon" style={{ fontSize: '64px' }}>💬</div>
+          <div className="app-icon">💬</div>
         </div>
         <div>
           <h1>ChatHub</h1>
-          <p>
-            Real-time messaging with WebSocket & React
-          </p>
+          <p>Real-time messaging with WebSocket & React</p>
         </div>
         <button
           className="counter"
           onClick={() => navigate('/chat')}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            marginTop: '20px'
-          }}
         >
           Open Chat →
         </button>
       </section>
 
+      {/* Divider */}
       <div className="ticks"></div>
 
+      {/* Features & Setup Section */}
       <section id="next-steps">
+        {/* Features Card */}
         <div id="docs">
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
+          <div style={{ fontSize: '48px' }}>⚡</div>
           <h2>Features</h2>
           <p>What's included</p>
           <ul>
             <li>
-              <span style={{ marginRight: '8px' }}>✅</span>
-              Real-time WebSocket Chat
+              <span>✅</span>
+              <span>Real-time WebSocket Chat</span>
             </li>
             <li>
-              <span style={{ marginRight: '8px' }}>✅</span>
-              Beautiful Dark UI
+              <span>✅</span>
+              <span>Beautiful Dark UI (Tailwind)</span>
             </li>
             <li>
-              <span style={{ marginRight: '8px' }}>✅</span>
-              User Management
+              <span>✅</span>
+              <span>User Management & Status</span>
             </li>
             <li>
-              <span style={{ marginRight: '8px' }}>✅</span>
-              Connection Status
+              <span>✅</span>
+              <span>Connection Indicators</span>
             </li>
             <li>
-              <span style={{ marginRight: '8px' }}>✅</span>
-              Emoji Picker
+              <span>✅</span>
+              <span>Emoji Picker</span>
+            </li>
+            <li>
+              <span>✅</span>
+              <span>Message Timestamps</span>
+            </li>
+            <li>
+              <span>✅</span>
+              <span>API Interceptor</span>
             </li>
           </ul>
         </div>
+
+        {/* Setup Card */}
         <div id="social">
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚀</div>
+          <div style={{ fontSize: '48px' }}>🚀</div>
           <h2>Getting Started</h2>
           <p>Setup requirements</p>
           <ul>
             <li>
-              <strong>Backend:</strong> Spring Boot on port 8080
+              <strong>Backend:</strong>
+              <span>Spring Boot on port 8080</span>
             </li>
             <li>
-              <strong>Frontend:</strong> React + Vite on port 5173
+              <strong>Frontend:</strong>
+              <span>React + Vite on port 5173</span>
             </li>
             <li>
-              <strong>WebSocket:</strong> ws://localhost:8080/ws
+              <strong>WebSocket:</strong>
+              <span>ws://localhost:8080/ws</span>
             </li>
             <li>
-              <strong>API:</strong> http://localhost:8080/api
+              <strong>API:</strong>
+              <span>http://localhost:8080/api</span>
             </li>
             <li>
-              <strong>.env:</strong> Check environment variables
+              <strong>Database:</strong>
+              <span>In-memory (ready for persistence)</span>
+            </li>
+            <li>
+              <strong>.env:</strong>
+              <span>Check environment variables</span>
             </li>
           </ul>
         </div>
       </section>
 
+      {/* Divider */}
       <div className="ticks"></div>
+
+      {/* Spacer */}
       <section id="spacer"></section>
     </>
   )
 }
 
-// Main App with Router
+// Main App Component with Router
 function App() {
   return (
     <Router>

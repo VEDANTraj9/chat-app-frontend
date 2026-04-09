@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-
+import '../styles/Messageinput.css';
 export default function MessageInput({ onSendMessage, isConnected, messageCount }) {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);

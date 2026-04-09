@@ -1,120 +1,22 @@
-/* Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', sans-serif;
+:root {
+  --bg: #0d0f14;
+  --surface: #13161e;
+  --surface2: #1a1e2a;
+  --accent: #4fffb0;
+  --accent2: #7b6fff;
+  --accent3: #ff6b9d;
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --border: rgba(255, 255, 255, 0.07);
+  --glass: rgba(255, 255, 255, 0.04);
+  --font: 'Syne', sans-serif;
+  --mono: 'DM Mono', monospace;
 }
 
-/* Body */
 body {
-  background: #0f172a;
-  color: #e2e8f0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
 }
 
-/* Center Section */
-#center {
-  height: 90vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  text-align: center;
-}
-
-/* Hero Icon */
-.app-icon {
-  background: linear-gradient(135deg, #3b82f6, #06b6d4);
-  padding: 20px;
-  border-radius: 50%;
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
-}
-
-/* Heading */
-h1 {
-  font-size: 48px;
-  font-weight: bold;
-}
-
-/* Paragraph */
-p {
-  color: #94a3b8;
-  font-size: 16px;
-}
-
-/* Button */
-.counter {
-  transition: 0.3s;
-}
-
-.counter:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 30px rgba(6, 182, 212, 0.4);
-}
-
-/* Divider */
-.ticks {
-  height: 2px;
-  background: linear-gradient(to right, transparent, #3b82f6, transparent);
-  margin: 40px 0;
-}
-
-/* Next Steps Section */
-#next-steps {
-  display: flex;
-  justify-content: space-around;
-  padding: 40px;
-  flex-wrap: wrap;
-  gap: 30px;
-}
-
-/* Cards */
-#docs,
-#social {
-  background: #1e293b;
-  padding: 30px;
-  border-radius: 16px;
-  width: 300px;
-  transition: 0.3s;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-}
-
-#docs:hover,
-#social:hover {
-  transform: translateY(-10px);
-}
-
-/* Card Heading */
-h2 {
-  margin-bottom: 10px;
-}
-
-/* List */
-ul {
-  list-style: none;
-  margin-top: 15px;
-}
-
-li {
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: #cbd5f5;
-}
-
-/* Spacer */
-#spacer {
-  height: 100px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  #next-steps {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  h1 {
-    font-size: 32px;
-  }
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }

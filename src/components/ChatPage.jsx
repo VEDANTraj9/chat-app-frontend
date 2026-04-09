@@ -1,199 +1,256 @@
-import { useState, useEffect, useRef } from "react";
-import ChatWindow from "./ChatWindow";
-import MessageInput from "./MessageInput";
-import UserStatus from "./UserStatus";
-import "../styles/chat.css";
+import React, { useState, useEffect, useRef } from "react";
+import WebSocketService from "../services/WebSocketService";
+import ChatWindow from "../components/ChatWindow";
+import MessageInput from "../components/MessageInput";
+import '../styles/Chatpage.css';
 
-// ✅ VITE ENV VARIABLES
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
-  const [username, setUsername] = useState("");
-  const [showUsernameModal, setShowUsernameModal] = useState(true);
   const [connectedUsers, setConnectedUsers] = useState(0);
-  const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [apiHealth, setApiHealth] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [username, setUsername] = useState(
+    localStorage.getItem("username") || "Anonymous",
+  );
+  const [showNameModal, setShowNameModal] = useState(
+    !localStorage.getItem("username"),
+  );
   const [loading, setLoading] = useState(true);
+  const messagesEndRef = useRef(null);
 
-  const websocketRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
-  const userIdRef = useRef(generateUserId());
+  // ═══════════════════════════════════════════════════════════════
+  // INITIALIZE APP
+  // ═══════════════════════════════════════════════════════════════
 
-  function generateUserId() {
-    return Math.random().toString(36).substring(2, 15);
-  }
-
-  // Username load
   useEffect(() => {
-    const savedUsername = localStorage.getItem("chatUsername");
-    if (savedUsername) {
-      setUsername(savedUsername);
-      setShowUsernameModal(false);
-    }
-    setLoading(false);
-  }, []);
-
-  // ✅ API Health Check
-  useEffect(() => {
-    const checkHealth = async () => {
+    const initializeApp = async () => {
       try {
-        console.log("🔍 Checking:", `${API_URL}/health`);
+        console.log("🚀 Initializing ChatApp...");
+        setLoading(true);
 
-        const response = await fetch(`${API_URL}/health`);
-        const data = await response.json();
+        // Connect to WebSocket
+        console.log("🔌 Connecting to WebSocket...");
+        await WebSocketService.connect();
+        setIsConnected(true);
+        console.log("✅ WebSocket Connected!");
 
-        setApiHealth(data);
-        console.log("✅ API Health:", data);
+        // Set up message listener
+        WebSocketService.onMessage((data) => {
+          console.log("📩 New message received:", data);
+
+          if (data.type === "chat") {
+            // Add message to state
+            setMessages((prev) => [...prev, data]);
+          }
+        });
+
+        // Set up connection change listener
+        WebSocketService.onConnectionChange((connected) => {
+          console.log("🔄 Connection changed:", connected);
+          setIsConnected(connected);
+        });
       } catch (error) {
-        console.error("❌ API Error:", error);
-        setApiHealth({ status: "error", message: error.message });
+        console.error("❌ Initialization error:", error);
+        setIsConnected(false);
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkHealth();
-    const interval = setInterval(checkHealth, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // ✅ WebSocket connect
-  useEffect(() => {
-    if (!username) return;
-
-    connectWebSocket();
+    initializeApp();
 
     return () => {
-      websocketRef.current?.close();
-      clearTimeout(reconnectTimeoutRef.current);
+      WebSocketService.disconnect();
     };
-  }, [username]);
-
-  // ✅ Users Count
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/users-count`);
-        const data = await res.json();
-        setConnectedUsers(data.count || 0);
-      } catch (err) {
-        console.error("❌ Users error:", err);
-      }
-    };
-
-    fetchUsers();
-    const interval = setInterval(fetchUsers, 5000);
-    return () => clearInterval(interval);
   }, []);
 
-  function connectWebSocket() {
-    const wsUrl = `${WS_URL}?username=${encodeURIComponent(
-      username
-    )}&userId=${userIdRef.current}`;
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-    console.log("🔄 WS Connecting:", wsUrl);
+  // ═══════════════════════════════════════════════════════════════
+  // HANDLERS
+  // ═══════════════════════════════════════════════════════════════
 
-    try {
-      websocketRef.current = new WebSocket(wsUrl);
+  const handleSetUsername = (newUsername) => {
+    console.log("✏️ Setting username:", newUsername);
+    localStorage.setItem("username", newUsername);
+    setUsername(newUsername);
+    setShowNameModal(false);
+  };
 
-      websocketRef.current.onopen = () => {
-        console.log("✅ WS Connected");
-        setConnectionStatus("connected");
-      };
-
-      websocketRef.current.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-
-        if (msg.type === "chat") {
-          setMessages((prev) => [...prev, msg]);
-        } else if (msg.type === "user-count") {
-          setConnectedUsers(msg.count || 0);
-        }
-      };
-
-      websocketRef.current.onerror = () => {
-        setConnectionStatus("error");
-      };
-
-      websocketRef.current.onclose = () => {
-        setConnectionStatus("disconnected");
-
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectWebSocket();
-        }, 3000);
-      };
-    } catch (err) {
-      console.error("❌ WS Error:", err);
-      setConnectionStatus("error");
-    }
-  }
-
-  function handleUsernameSubmit(name) {
-    if (name.trim()) {
-      localStorage.setItem("chatUsername", name);
-      setUsername(name);
-      setShowUsernameModal(false);
-    }
-  }
-
-  function handleSendMessage(text) {
-    if (websocketRef.current?.readyState !== WebSocket.OPEN) {
-      alert("❌ Not connected");
+  const handleSendMessage = (messageText) => {
+    if (!messageText.trim()) {
+      console.warn("⚠️ Empty message, not sending");
       return;
     }
 
-    const msg = {
-      type: "chat",
-      username,
-      userId: userIdRef.current,
-      message: text,
-      timestamp: new Date().toISOString(),
-    };
+    if (!isConnected) {
+      console.error("❌ WebSocket not connected");
+      alert("Not connected to server. Please wait...");
+      return;
+    }
 
-    websocketRef.current.send(JSON.stringify(msg));
+    console.log("📝 Sending message:", messageText);
+    WebSocketService.sendMessage(messageText);
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4 mx-auto"></div>
+          <p className="text-white">Connecting to server...</p>
+          <p className="text-gray-400 text-sm mt-2">
+            URL: ws://localhost:8080/ws
+          </p>
+        </div>
+      </div>
+    );
   }
-
-  function handleCheckApiStatus() {
-    alert(`API: ${API_URL}`);
-  }
-
-  if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="chat-container">
-      {showUsernameModal && <UsernameModal onSubmit={handleUsernameSubmit} />}
+    <div className="flex h-screen bg-gray-900 text-white">
+      {/* Username Modal */}
+      {showNameModal && <UsernameModal onSetUsername={handleSetUsername} />}
 
-      <aside className="chat-sidebar">
-        <h2>💬 ChatHub</h2>
+      {/* Sidebar */}
+      <div className="w-80 bg-gray-800 border-r border-gray-700 p-4 flex flex-col overflow-y-auto scrollbar-thin">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold mb-2">💬 ChatApp</h1>
+          <p className="text-sm text-gray-400">Real-time Chat</p>
+        </div>
 
-        <p>User: {username}</p>
-        <p>Status: {connectionStatus}</p>
-        <p>Users: {connectedUsers}</p>
+        {/* Connection Status */}
+        <div className="mb-6 p-4 bg-gray-700 rounded-lg border border-gray-600">
+          <div className="flex items-center gap-2 mb-3">
+            <div
+              className={`w-3 h-3 rounded-full animate-pulse ${
+                isConnected ? "bg-green-500" : "bg-red-500"
+              }`}
+            ></div>
+            <span className="font-medium">
+              {isConnected ? "🟢 Connected" : "🔴 Disconnected"}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400">
+            WebSocket: {WebSocketService.getStatus()}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Messages: {messages.length}
+          </p>
+        </div>
 
-        <button onClick={handleCheckApiStatus}>Check API</button>
-      </aside>
+        {/* User Info */}
+        <div className="mb-4 flex-1">
+          <h2 className="text-sm font-semibold mb-3 text-gray-300">
+            👤 Your Profile
+          </h2>
+          <div className="p-3 bg-blue-600 rounded-lg">
+            <p className="font-medium text-sm break-words">{username}</p>
+            <p className="text-xs text-blue-200 mt-1">
+              ID: {WebSocketService.userId}
+            </p>
+          </div>
+        </div>
 
-      <main className="chat-main">
-        <ChatWindow messages={messages} currentUsername={username} />
+        {/* Change Name Button */}
+        <button
+          onClick={() => setShowNameModal(true)}
+          className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition"
+        >
+          ✏️ Change Name
+        </button>
 
+        {/* Debug Info */}
+        <div className="mt-4 p-3 bg-gray-700 bg-opacity-50 rounded text-xs text-gray-400 border border-gray-600">
+          <p className="font-semibold mb-1">Debug Info:</p>
+          <p>Connected: {isConnected ? "Yes" : "No"}</p>
+          <p>Total Messages: {messages.length}</p>
+          <p>Your User ID: {WebSocketService.userId}</p>
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold">Public Chat Room</h2>
+            <p className="text-sm text-gray-400">
+              {messages.length} messages • {connectedUsers} users online
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-400">Status</p>
+            <p
+              className={`font-bold ${
+                isConnected ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {isConnected ? "🟢 Online" : "🔴 Offline"}
+            </p>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <ChatWindow messages={messages} messagesEndRef={messagesEndRef} />
+
+        {/* Input */}
         <MessageInput
           onSendMessage={handleSendMessage}
-          isConnected={connectionStatus === "connected"}
+          isConnected={isConnected}
         />
-      </main>
+      </div>
     </div>
   );
 }
 
-// Modal
-function UsernameModal({ onSubmit }) {
-  const [val, setVal] = useState("");
+// ═══════════════════════════════════════════════════════════════
+// USERNAME MODAL
+// ═══════════════════════════════════════════════════════════════
+
+function UsernameModal({ onSetUsername }) {
+  const [inputValue, setInputValue] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (inputValue.trim()) {
+      onSetUsername(inputValue);
+    }
+  };
 
   return (
-    <div className="modal">
-      <h2>Enter Name</h2>
-      <input value={val} onChange={(e) => setVal(e.target.value)} />
-      <button onClick={() => onSubmit(val)}>Join</button>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-gray-800 p-8 rounded-lg max-w-sm w-full border border-gray-700 shadow-2xl">
+        <h2 className="text-2xl font-bold mb-4">👤 Enter Your Name</h2>
+        <p className="text-gray-400 text-sm mb-6">
+          Choose a username to start chatting with others
+        </p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="e.g., John Doe"
+            className="w-full px-4 py-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 mb-4"
+            autoFocus
+            maxLength={20}
+          />
+          <button
+            type="submit"
+            disabled={!inputValue.trim()}
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition"
+          >
+            Continue to Chat
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
